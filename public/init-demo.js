@@ -45,26 +45,36 @@
 					if(demoSkins||demoDebug){
 						const frag=d.createDocumentFragment(),createElementIn=(e,s)=>e.appendChild(e.ownerDocument.createElement(s));
 						if(demoSkins && demoSkins.length){
-							const maxSkin=demoSkins.length-1;
+							const maxSkin=demoSkins.length;
 							if(maxSkin){
-								let prevSkin=0,linkLoaded=false,i=frag;
-								const demoRunLocally=w.location.href.startsWith('file://'),
-								f=createElementIn,
-								selectSkin=f(i,'select'),
-								link=i=f(i,'link'),
+								let linkLoaded=false,prevSkin=0,i=frag,loc=w.location;
+								const demoRunLocally=loc.href.startsWith('file://'),
+								USP=w.URLSearchParams,
 								dH=d.head,
+								f=createElementIn,
+								link=i=f(i,'link'),
+								selectSkin=f(i,'select'),
+								updateQs=v=>{
+									const l=loc;
+									let t='skin',s=new USP(l.search);
+									if(''==v){s.delete(t)}else{s.set(t,v)};
+									s=s.toString();
+									t=l.protocol+'//'+l.host+l.pathname;
+									if(''!==s){t+='?'+s};
+									w.history.pushState({path:t},'',t)
+								},
 								setSkin=v=>{
 									const m=['./skin',null,'.css'],
 									s=(m[1]=v!==''?'-'+v:v,m.join('')),
 									ok=()=>{
-										prevSkin=v;
-										link.href=s
+										link.href=s;
+										updateQs(prevSkin=v)
 									},
 									ko=()=>{
-										const o=selectSkin[v];
+										const e=selectSkin,o=e[v-1];
 										o.disabled=true;
 										o.title='not available';
-										selectSkin.selectedIndex=prevSkin
+										updateQs(e.selectedIndex=prevSkin)
 									};
 									if(link.href!==s){
 										if(demoRunLocally){
@@ -78,47 +88,27 @@
 									}
 								};
 								i.rel='stylesheet';
-								i.href='./skin.css';
-								i=f(selectSkin,'option');
-								i.textContent=demoSkins[0];
-								i.title='default';
-								i.value='';
+								i.href='./skin-1.css';
 								i=0;
 								while(i<maxSkin){
 									const e=f(selectSkin,'option');
-									e.textContent=demoSkins[++i];
-									e.value=i
+									e.textContent=demoSkins[i];
+									e.value=i+1;
+									++i
 								};
+								selectSkin.firstElementChild.title='default';
 								selectSkin.id='select-skin';
-								selectSkin.addEventListener('change',evt=>{
-									if(linkLoaded){
-										let s,t=evt.target;
-										const v=t.value,w=t.ownerDocument.defaultView,l=w.location;
-										s=new w.URLSearchParams(l.search);
-										t='skin';
-										if(''==v){s.delete(t)}else{s.set(t,v)};
-										t=s.toString();
-										s=l.protocol+'//'+l.host+l.pathname;
-										if(''!==t){s+='?'+t};
-										w.history.pushState({path:s},'',s);
-										setSkin(v)
-									}else{
-										selectSkin.selectedIndex=prevSkin
-									}
-								});
+								selectSkin.addEventListener('change',evt=>{const e=evt.target;if(linkLoaded){setSkin(e.value)}else{e.selectedIndex=prevSkin}});
 								onceWhen(link,'load',()=>{linkLoaded=true});
 								dH.querySelector("link[rel=stylesheet]:last-of-type").after(link);
 								demoContent.prepend(selectSkin);
-								i=w.location.search;
+								i=loc.search;
 								if(''!==i){
-									const o=new w.URLSearchParams(i);
+									const o=new USP(i);
 									if(o.has('skin')){
-										const v=o.get('skin');
-										if(v<=maxSkin){
-											linkLoaded=false;
-											setSkin(prevSkin=v);
-											selectSkin.selectedIndex=v
-										}
+										let v=o.get('skin');
+										if(v>0 && v<=maxSkin){selectSkin.selectedIndex=v-1}else{prevSkin=v=1};
+										setSkin(v)
 									}
 								}
 							}
@@ -135,7 +125,7 @@
 					if(lorems){
 						const dummyText=(a,b=1)=>{//phrases max,min
 							let i=Math,j=i.max;
-							const m=[
+							const m=w.phrasesForFakeText||[
 								"Tincidunt id aliquet risus feugiat in.",
 								"Nisi vitae suscipit tellus mauris a. Tortor id aliquet lectus proin.",
 								"Nisl nunc mi ipsum faucibus vitae.",
